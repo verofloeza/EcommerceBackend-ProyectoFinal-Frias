@@ -1,48 +1,56 @@
-const express = require("express");
-const routerProductos = express.Router();
-const Productos = require("../index.js");
+import { Router } from "express";
+import bodyParser from "body-parser";
+import { productoDao } from "../daos/index.js";
 
-const productos = new Productos();
+const routerProductos = Router();
+const jsonParser = bodyParser.json();
 
-routerProductos.get( "/", (req, res, next) => {
-    res.status(200).json(productos.getAll());
-    next();
-});
+let result;
 
-routerProductos.post( "/", (req, res, next) => {
-    res.status(201).json(productos.postProd(req.body));
-    next();
-});
-
-routerProductos.get( "/:id", (req, res, next) => {
-    let result = productos.getProd(req.params.id);
+routerProductos.get( "/",async (req, res, next) => {
+    result =await productoDao.getAll();
     if(!result){
-        res.status(404).json({ error: 'Producto no encontrado' });
+        return res.status(404).json({ error });
     }else{
-        res.status(200).json(result);
+        return res.status(200).json(result);
+    }
+});
+
+routerProductos.post( "/", jsonParser, async (req, res, next) => {
+    result =await productoDao.postProd(req.body);
+    if(!result){
+        return res.status(404).json({ error: 'Producto no agregado' });
+    }else{
+        return res.status(201).json(result);
     }
     
-    next();
 });
 
-routerProductos.put( "/:id", (req, res, next) => {
-    let result = productos.putProd(req.params.id, req.body);
+routerProductos.get( "/:id", async (req, res, next) => {
+    result = await productoDao.getProd(req.params.id);
     if(!result){
-        res.status(404).json({ error: 'Producto no encontrado' });
+        return res.status(404).json({ error: 'Producto no encontrado' });
     }else{
-        res.status(200).json(result);
+        return res.status(200).json(result);
     }
-    next();
+});
+
+routerProductos.put( "/:id", jsonParser, async (req, res, next) => {
+    result = await productoDao.putProd(req.params.id, req.body);
+    if(!result){
+        return res.status(404).json({ error: 'Producto no encontrado' });
+    }else{
+        return res.status(200).json(result);
+    }
 })
 
-routerProductos.delete( "/:id", (req, res, next) => {
-    let result = productos.deleteProd(req.params.id);
+routerProductos.delete( "/:id", async (req, res, next) => {
+    result = await productoDao.deleteProd(req.params.id);
     if(!result){
-        res.status(404).json({ error: 'Producto no encontrado' });
+        return res.status(404).json({ error: 'Producto no encontrado' });
     }else{
-        res.status(200).json(result);
+        return res.status(200).json(result);
     }
-    next();
 })
 
-module.exports = routerProductos;
+export default routerProductos;

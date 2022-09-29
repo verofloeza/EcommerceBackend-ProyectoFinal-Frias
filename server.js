@@ -1,29 +1,40 @@
-const express = require("express");
-const morgan = require("morgan");
+import * as dotenv from 'dotenv'
+
+import express, { urlencoded } from "express";
+
+import morgan from "morgan";
+import routerCarrito from "./src/routes/carritos.routes.js";
+import routerProductos from "./src/routes/productos.routes.js";
 
 const app = express();
-const routerProductos = require("./src/routes/productos.routes.js");
-const routerCarrito = require("./src/routes/carrito.routes.js");
-
+dotenv.config()
 // /*-------------------Middleware-------------------------*/
-app.use(express.json());
-app.use(express.urlencoded({ extended: true}));
+app.use(urlencoded({ extended: true}));
 app.use(morgan("dev"));
-app.use(express.static(__dirname + '/public'));
-
 
 // /*-------------------Rutas-------------------------*/
 app.use("/api/productos", routerProductos);
-app.use("/api/carrito", routerCarrito);
+app.use("/api/carritos", routerCarrito);
 
 app.get('*', (req, res)=>{
     /* Returning a 404 status code. */
-    res.status(404).json({ error: ` -2, descripcion: /api/carrito${req.url} ${req.method} - No implementada` })
+    res.status(404).json({ error: ` -2, descripcion: /api/carritos${req.url} ${req.method} - No implementada` })
 })
 
+app.use((error, req, res, next) => {
+    res.status(error.status || 500).send({
+     error: {
+      status: error.status || 500,
+      message: error.message || 'Internal Server Error.'
+     }
+    });
+   });
 
-const server = app.listen(8080, ()=> {
-    console.log("servidor escuchando http://localhost:8080/")
+
+
+
+const server = app.listen(process.env.PORT, ()=> {
+    console.log(`Servidor escuchando en el puerto http://localhost:${process.env.PORT}`)
 });
 
 server.on('error', error=>{
