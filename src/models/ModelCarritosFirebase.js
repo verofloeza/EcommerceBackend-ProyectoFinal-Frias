@@ -1,111 +1,119 @@
-import { carritosModel } from '../model/carritos.model.js';
 import { config } from '../utils/config.js';
-import mongoose from "mongoose";
-import { productosModel } from '../model/productos.model.js';
 
-const strConn = config.atlas.strConn;
+const strConn = config.firebase.strConn;
 
-let objs;
+const db = strConn.firestore();
+let objs= db.collection('carritos');
+let objs2= db.collection('productos');
+
 class ModelCarritosFirebase{
     constructor(){};
 
     async getAll(){
         try {
-            await mongoose.connect(strConn);
-            objs = await carritosModel.find();
-            return objs;
+            let array = [];
+            const snapshot = await objs.get();
+            snapshot.forEach(doc => {
+              array.push( doc.data());
+            });
+            return array
           } catch (error) {
             console.log(error)
-        } finally {
-            await mongoose.disconnect()
-        }
+        } 
     };
 
     async postCarrito(){
-        try {
-            await mongoose.connect(strConn);
-            objs = await carritosModel.find();
-            let cant= objs.length;
-            let idcarr= cant+1;
+        try {   
+            let array = [];
+            const snapshot = await objs.get();
+            snapshot.forEach(doc => {
+              array.push( doc.data());
+            });
+            let cant = array.length;
+            let idprod= cant+1;
             let time = Date.now();
             let datos = {
-                id: idcarr,
+                id: idprod,
                 timestamp : time,
-                productos:[]
+                productos: []
             }
+            let doc = objs.doc();
+            await doc.create(datos);
 
-            await carritosModel.insertMany(datos);
-
-            return idcarr;
+            return datos;
 
           } catch (error) {
             console.log(error)
-        } finally {
-            await mongoose.disconnect()
         }
     }
 
     async postCarritoId(idProd, id){
-        try {
-            await mongoose.connect(strConn);
-            objs = await carritosModel.find({'id': id});
+        try {   
+            let array;
+            let carrito = [];
+            const snapshot = await objs.where('id', '==', parseInt(id)).get();
+            snapshot.forEach(doc => {
+                array = doc.id;
+                carrito.push(doc.data());
+              });
+            let arrayProd=carrito[0].productos 
+            let array2 = [];
+            const snapshot2 = await objs2.where('id', '==', parseInt(idProd.id)).get();
+            snapshot2.forEach(doc => {
+                array2.push(doc.data());
+              });
+            arrayProd.push(array2[0]);
 
-            let producto = await productosModel.find({id: idProd.id});
+            let producto = objs.doc(`${array}`);
+            await producto.update({'productos': arrayProd})
 
-            await carritosModel.updateOne(
-                {id: id},
-                {$set:  {productos: [producto[0]]}}
-            );
-
-            return producto;
+            return arrayProd;
 
           } catch (error) {
             console.log(error)
-        } finally {
-            await mongoose.disconnect()
         }
     }
 
-    async getCarrito(id){
-        try {
-            await mongoose.connect(strConn);
-            objs = await carritosModel.find({'id': parseInt(id)});
+    async deleteProd(id, idProd){
+      try {   
+          let array;
+          let carrito = [];
+          const snapshot = await objs.where('id', '==', parseInt(id)).get();
+          snapshot.forEach(doc => {
+              array = doc.id;
+              carrito.push(doc.data());
+            });
+          let arrayProd=carrito[0].productos 
+          
+          let Prod = arrayProd.filter( i => i.id != parseInt(idProd))
 
-            return objs[0].productos;
+          let producto = objs.doc(`${array}`);
+          await producto.update({'productos': Prod})
 
-          } catch (error) {
-            console.log(error)
-        } finally {
-            await mongoose.disconnect()
-        }
-    }
+          return true;
 
-    async deleteProd(id,idProd){
-        try {
-            await mongoose.connect(strConn);
-            await carritosModel.updateOne({id: id},{ $unset : { 'productos' : {'id': idProd}} },{ multi: true });
-
-            return true;
-
-          } catch (error) {
-            console.log(error)
-        } finally {
-            await mongoose.disconnect()
-        }
+        } catch (error) {
+          console.log(error)
+      }
     }
     
     async deleteCarrito(idCarr){
-        try {
-            await mongoose.connect(strConn);
-            await carritosModel.deleteOne({id: idCarr});
+      try {   
+          let array;
+          const snapshot = await objs.where('id', '==', parseInt(idCarr)).get();
+          snapshot.forEach(doc => {
+              array = doc.id;
+              
+            });
 
-            return true;
+          let producto = objs.doc(`${array}`);
+          await producto.delete()
 
-          } catch (error) {
-            console.log(error)
-        } finally {
-            await mongoose.disconnect()
-        }
+          return true;
+
+        } catch (error) {
+          console.log(error)
+      }
     }
     
 };
